@@ -28,7 +28,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
 
                         // ⭐ PUBLIC ENDPOINTS
-                        .requestMatchers("/auth/signup", "/auth/login").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/forgot-password/**").permitAll()
 
                         // ⭐ PROTECTED ENDPOINTS
