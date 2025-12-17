@@ -34,12 +34,7 @@ public class ProductController {
     public ResponseEntity<List<ProductDTO>> getProductsByCategory(@PathVariable Long cid) {
         return ResponseEntity.ok(productService.getProductsByCategory(cid));
     }
-//    @PutMapping("/update/{pid}")
-//    public ResponseEntity<ProductDTO> updateProduct(
-//            @PathVariable Long pid,
-//            @RequestBody ProductDTO dto) {
-//        return ResponseEntity.ok(productService.updateProduct(pid, dto));
-//    }
+
     @DeleteMapping("/delete/{pid}")
     public ResponseEntity<String> deleteProduct(@PathVariable Long pid) {
         productService.deleteProduct(pid);

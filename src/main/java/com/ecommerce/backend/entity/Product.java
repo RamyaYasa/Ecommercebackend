@@ -9,7 +9,7 @@ import lombok.*;
 public class Product {
 
     @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long pid;
 
     private String pname;
@@ -27,7 +27,7 @@ public class Product {
 
     private int discount;
     private double rating;
-    private String qty;
+    private int quantity;
 
     @ManyToOne
     @JoinColumn(name = "cid")

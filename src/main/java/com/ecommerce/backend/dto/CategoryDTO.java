@@ -1,19 +1,3 @@
-//package com.ecommerce.backend.dto;
-//
-//import lombok.*;
-//
-//@Data
-//@NoArgsConstructor
-//@AllArgsConstructor
-//public class CategoryDTO {
-//
-//    private Long cid;
-//    private String cname;
-//    private String ctype;
-//}
-
-
-
 package com.ecommerce.backend.dto;
 import lombok.*;
 @Data
@@ -24,7 +8,7 @@ public class CategoryDTO {
     private Long cid;
     private String cname;
     private String cphoto;
-    private SubCategoryDTO subCategory;
+//    private SubCategoryDTO subCategory;
 
 
     // getters & setters

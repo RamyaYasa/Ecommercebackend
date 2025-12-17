@@ -14,6 +14,6 @@ public class ProductDTO {
     private double actualPrice;
     private int discount;
     private double rating;
-    private String qty;
+    private int Quantity;
     private CategoryDTO category;
 }
