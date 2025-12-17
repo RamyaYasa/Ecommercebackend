@@ -19,6 +19,8 @@ public class Cart {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private Long pid;
+
     @Column(nullable = false)
     private String userId; // user email or unique id
 

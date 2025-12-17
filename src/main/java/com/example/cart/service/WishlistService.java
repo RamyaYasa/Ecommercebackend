@@ -1,21 +1,28 @@
 package com.example.cart.service;
 
+import com.example.cart.client.ProductClient;
+import com.example.cart.dto.ProductDTO;
+import com.example.cart.dto.WishlistItemRequestDTO;
+import com.example.cart.model.CartItem;
 import com.example.cart.model.Wishlist;
 import com.example.cart.model.WishlistItem;
 import com.example.cart.repository.WishlistItemRepository;
 import com.example.cart.repository.WishlistRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class WishlistService {
 
     private final WishlistRepository wishlistRepository;
     private final WishlistItemRepository wishlistItemRepository;
+    private final ProductClient productClient;
 
     // ------------------ GET OR CREATE ------------------
 
@@ -34,26 +41,80 @@ public class WishlistService {
     // ------------------ ADD ITEM ------------------
 
     @Transactional
-    public Wishlist addItem(String userId, WishlistItem item) {
+    public Wishlist addItem(String userId, WishlistItemRequestDTO request) {
+
+        ProductDTO product = productClient.getProductById(request.getPid());
+
+        if (product == null) {
+            throw new IllegalArgumentException(
+                    "Product not found with ID: " + request.getPid());
+        }
 
         Wishlist wishlist = getOrCreateWishlist(userId);
 
-        // ❌ prevent duplicate product in wishlist
-        boolean exists = wishlist.getItems().stream()
-                .anyMatch(i -> i.getPid().equals(item.getPid()));
+        Optional<WishlistItem> existingItemOpt = wishlist.getItems().stream()
+                .filter(i -> i.getPid().equals(request.getPid()))
+                .findFirst();
 
-        if (exists) {
-            throw new IllegalArgumentException("Product already exists in wishlist");
+        // ✅ If item already exists → just return wishlist
+        if (existingItemOpt.isPresent()) {
+            return wishlist;
         }
 
-        item.setItemId(UUID.randomUUID());
-        item.setWishlist(wishlist);
+        // ✅ Create new item only if not exists
+        WishlistItem newItem = WishlistItem.builder()
+                .pid(product.getPid())
+                .pname(product.getPname())
+                .description(product.getDescription())
+                .price(product.getPrice())
+                .actualPrice(
+                        product.getActualPrice() != 0.0
+                                ? product.getActualPrice()
+                                : product.getPrice())
+                .discount(product.getDiscount())
+                .stockQuantity(product.getStockQuantity())
+                .rating(product.getRating())
+                .imagePath(product.getImagePath())
+                .wishlist(wishlist)
+                .build();
 
-        wishlist.getItems().add(item);
-        wishlistItemRepository.save(item);
+        wishlist.getItems().add(newItem);
 
+        wishlistItemRepository.save(newItem);
         return wishlistRepository.save(wishlist);
     }
+
+
+
+//        if (existing.isPresent()) {
+//            Wishlist item = existing.get();
+//            //int newQty = item.getQuantity() + request.getQuantity();
+//
+//            // Check stock using product from Product service
+//            if (newQty > product.getStockQuantity()) {
+//                throw new IllegalArgumentException(
+//                        "Requested quantity exceeds available stock. Available: " +
+//                                product.getStockQuantity()
+//                );
+//            }
+
+
+        // ❌ prevent duplicate product in wishlist
+//        boolean exists = product.getItems().stream()
+//                .anyMatch(i -> i.getPid().equals(item.getPid()));
+//
+//        if (exists) {
+//            throw new IllegalArgumentException("Product already exists in wishlist");
+//        }
+//
+//        item.setItemId(UUID.randomUUID());
+//        item.setWishlist(wishlist);
+//
+//        wishlist.getItems().add(item);
+//        wishlistItemRepository.save(item);
+//
+//        return wishlistRepository.save(wishlist);
+
 
     // ------------------ REMOVE ITEM ------------------
 

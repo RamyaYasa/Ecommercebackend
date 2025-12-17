@@ -4,34 +4,50 @@ import com.example.cart.dto.WalletResponseDTO;
 import com.example.cart.service.WalletService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.example.cart.client.AuthClient;
+
 
 @RestController
 @RequestMapping("/api/wallet")
 public class WalletController {
 
     private final WalletService walletService;
+    private final AuthClient authClient;
 
-    public WalletController(WalletService walletService) {
+
+    public WalletController(
+            WalletService walletService,
+            AuthClient authClient
+    )
+    {
         this.walletService = walletService;
+        this.authClient = authClient;
     }
 
-    @GetMapping("/{userId}")
-    public ResponseEntity<WalletResponseDTO> getWallet(@PathVariable String userId) {
+    @GetMapping("/byId")
+    public ResponseEntity<WalletResponseDTO>
+    getWallet(@RequestHeader("Authorization") String authorizationHeader)
+    {
+        String userId = authClient.extractClaims(authorizationHeader);
         return ResponseEntity.ok(walletService.getWallet(userId));
     }
 
-    @PostMapping("/{userId}/add")
+    @PostMapping("/add")
     public ResponseEntity<WalletResponseDTO> addMoney(
-            @PathVariable String userId,
-            @RequestParam double amount) {
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestParam double amount)
+    {
+        String userId = authClient.extractClaims(authorizationHeader);
         return ResponseEntity.ok(walletService.addMoney(userId, amount));
     }
 
-    @PostMapping("/{userId}/pay")
+    @PostMapping("/pay")
     public ResponseEntity<WalletResponseDTO> pay(
-            @PathVariable String userId,
-            @RequestParam double amount) {
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestParam double amount)
+    {
+        String userId = authClient.extractClaims(authorizationHeader);
+
         return ResponseEntity.ok(walletService.deductMoney(userId, amount));
     }
 }
-

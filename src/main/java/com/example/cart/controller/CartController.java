@@ -48,7 +48,6 @@ public class CartController {
             @PathVariable Long itemId,
             @RequestParam int quantity) {
         String userId = authClient.extractClaims(authorizationHeader);
-
         return ResponseEntity.ok(cartService.updateQuantity(userId, itemId, quantity));
     }
 
@@ -56,10 +55,8 @@ public class CartController {
     @DeleteMapping("/item/{itemId}")
     public ResponseEntity<CartResponseDTO> deleteItem(
             @RequestHeader("Authorization") String authorizationHeader,
-
             @PathVariable Long itemId) {
         String userId = authClient.extractClaims(authorizationHeader);
-
         return ResponseEntity.ok(cartService.deleteItem(userId, itemId));
     }
 
@@ -89,7 +86,6 @@ public class CartController {
             @RequestHeader("Authorization") String authorizationHeader,
             @PathVariable String couponCode) {
         String userId=authClient.extractClaims(authorizationHeader);
-
         return ResponseEntity.ok(cartService.applyCoupon(userId, couponCode));
     }
 
@@ -101,9 +97,9 @@ public class CartController {
     }
 
     // Checkout
-    @PostMapping("/{userId}/checkout")
-    public ResponseEntity<String> checkout(@PathVariable String userId) {
+    @PostMapping("/checkout")
+    public ResponseEntity<String> checkout(@RequestHeader("Authorization") String authorizationHeader) {
+        String userId=authClient.extractClaims(authorizationHeader);
         return ResponseEntity.ok(cartService.checkout(userId));
     }
-
 }

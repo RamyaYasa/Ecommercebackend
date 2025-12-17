@@ -10,27 +10,19 @@ import lombok.*;
 public class CartItemRequestDTO {
 
     @NotNull
-    private Long pid;
-
-    @NotNull
-    private String pname;
-
-    private String description;
-
-    @NotNull
-    private Double price;
-
-    @NotNull
-    private Integer stockQuantity;
-
-    private Double actualPrice;
-
-    private Integer discount;
+    private Long pid;  // ONLY product ID
 
     @NotNull
     @Min(1)
-    private Integer quantity;
+    private Integer quantity;  // ONLY quantity
 
-    private Double rating;
-    private String imagePath;
+
+    // private String pname;
+    // private String description;
+    // private Double price;
+    // private Integer stockQuantity;
+    // private Double actualPrice;
+    // private Integer discount;
+    // private Double rating;
+    // private String imagePath;
 }

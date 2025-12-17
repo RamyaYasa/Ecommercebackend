@@ -1,8 +1,10 @@
 package com.example.cart.service;
 
+import com.example.cart.client.ProductClient;
 import com.example.cart.dto.CartItemRequestDTO;
 import com.example.cart.dto.CartItemResponseDTO;
 import com.example.cart.dto.CartResponseDTO;
+import com.example.cart.dto.ProductDTO;
 import com.example.cart.model.Cart;
 import com.example.cart.model.CartItem;
 import com.example.cart.model.Coupon;
@@ -13,6 +15,8 @@ import com.example.cart.repository.CouponRepository;
 import com.example.cart.model.Wallet;
 import com.example.cart.repository.WalletRepository;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,22 +24,15 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class CartServiceImpl implements CartService {
 
     private final CartRepository cartRepository;
     private final CartItemRepository itemRepository;
     private final CouponRepository couponRepository;
     private final WalletRepository walletRepository;
-
-    public CartServiceImpl(CartRepository cartRepository,
-                           CartItemRepository itemRepository,
-                           CouponRepository couponRepository,
-                           WalletRepository walletRepository) {
-        this.cartRepository = cartRepository;
-        this.itemRepository = itemRepository;
-        this.couponRepository = couponRepository;
-        this.walletRepository = walletRepository;
-    }
+    private final ProductClient productClient;
 
     private double computeDeliveryCharge(double subtotal) {
         return subtotal < 500.0 ? 30.0 : 0.0;
@@ -100,11 +97,22 @@ public class CartServiceImpl implements CartService {
         return dto;
     }
 
-    // ----------------- CART OPERATIONS ----------------------
+
 
     @Override
     @Transactional
     public CartResponseDTO addToCart(String userId, CartItemRequestDTO request) {
+        log.info("Adding product {} to cart for user {}", request.getPid(), userId);
+
+
+        ProductDTO product = productClient.getProductById(request.getPid());
+
+        if (product == null) {
+            throw new IllegalArgumentException("Product not found with ID: " + request.getPid());
+        }
+
+        log.info("Fetched product: {}, Price: {}, Stock: {}",
+                product.getPname(), product.getPrice(), product.getStockQuantity());
 
         Cart cart = getOrCreateCartForUser(userId);
 
@@ -115,27 +123,41 @@ public class CartServiceImpl implements CartService {
         if (existing.isPresent()) {
             CartItem item = existing.get();
             int newQty = item.getQuantity() + request.getQuantity();
-            if (newQty > item.getStockQuantity()) {
-                throw new IllegalArgumentException("Requested quantity exceeds available stock");
+
+            // Check stock using product from Product service
+            if (newQty > product.getStockQuantity()) {
+                throw new IllegalArgumentException(
+                        "Requested quantity exceeds available stock. Available: " +
+                                product.getStockQuantity()
+                );
             }
+
             item.setQuantity(newQty);
             item.recalcTotal();
             itemRepository.save(item);
 
         } else {
-            if (request.getQuantity() > request.getStockQuantity()) {
-                throw new IllegalArgumentException("Requested quantity exceeds available stock");
+            // Check stock using product from Product service
+            if (request.getQuantity() > product.getStockQuantity()) {
+                throw new IllegalArgumentException(
+                        "Requested quantity exceeds available stock. Available: " +
+                                product.getStockQuantity()
+                );
             }
 
+            // Create new cart item with product details from Product service
             CartItem newItem = CartItem.builder()
-                    .pid(request.getPid())
-                    .pname(request.getPname())
-                    .description(request.getDescription())
-                    .price(request.getPrice())
-                    .stockQuantity(request.getStockQuantity())
-                    .actualPrice(request.getActualPrice() != null ? request.getActualPrice() : request.getPrice())
-                    .discount(request.getDiscount() != null ? request.getDiscount() : 0)
+                    .pid(product.getPid())
+                    .pname(product.getPname())
+                    .description(product.getDescription())
+                    .price(product.getPrice())
+                    .stockQuantity(product.getStockQuantity())
+                    .actualPrice(product.getActualPrice() != 0.0 ? product.getActualPrice() : product.getPrice())
+                    .discount(product.getDiscount())
                     .quantity(request.getQuantity())
+                    .rating(product.getRating())
+                    .imagePath(product.getImagePath())
+                    .quantity(product.getQuantity())
                     .build();
 
             newItem.recalcTotal();
@@ -165,8 +187,17 @@ public class CartServiceImpl implements CartService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Item not found in cart: " + itemId));
 
-        if (newQuantity > target.getStockQuantity()) {
-            throw new IllegalArgumentException("Requested quantity exceeds available stock");
+
+        ProductDTO product = productClient.getProductById(target.getPid());
+        if (product == null) {
+            throw new IllegalArgumentException("Product no longer available");
+        }
+
+        if (newQuantity > product.getStockQuantity()) {
+            throw new IllegalArgumentException(
+                    "Requested quantity exceeds available stock. Available: " +
+                            product.getStockQuantity()
+            );
         }
 
         target.setQuantity(newQuantity);
